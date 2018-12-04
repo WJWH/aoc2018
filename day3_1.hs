@@ -1,12 +1,11 @@
 {-# LANGUAGE OverloadedStrings, FlexibleContexts #-}
 import Control.Applicative ((<$>))
 import Control.Monad.Identity
+import Data.List
 import qualified Data.Map as M
 import qualified Data.Text as T
 import Data.Text.IO as TIO
 import Text.Parsec
-
-bigSheet = M.empty
 
 -- Let's make those type signatures a bit shorter
 -- For our purposes: a parser of type a is a ParsecT that take Texts, has no state, the Identity
@@ -33,13 +32,23 @@ claim = do
   height <- integer
   return $ Claim x y width height
 
-claimsFile :: Parser [Claim] --Stream s m Char => ParsecT s u m [Claim]
-claimsFile = do
+claimsFileParser :: Parser [Claim] --Stream s m Char => ParsecT s u m [Claim]
+claimsFileParser = do
   claims <- endBy claim endOfLine
   eof
   return claims
 
+-- For the solution we "expand" the claims into the grid they represent with a list comprehension
+-- and then increment all those values into a Map representing the sheet of cloth. In the end we'll
+-- look at all the values and see how many are larger than 1.
+tilesTouched :: Claim -> [(Integer,Integer)]
+tilesTouched (Claim x y width height) = [(a,b) | a <- [(x+1)..(x+width)], b <- [(y+1)..(y+height)]]
+
+emptySheet = M.empty
+fillSheet :: [Claim] -> M.Map (Integer,Integer) Integer
+fillSheet claims = foldl' foldfunc emptySheet $ concatMap tilesTouched claims
+  where foldfunc sheet key = M.insertWith (+) key 1 sheet
 
 main = do
-  Right claims <- parse claimsFile "input" <$> TIO.readFile "input_day3.txt"
-  print $ take 3 claims
+  Right claims <- parse claimsFileParser "input" <$> TIO.readFile "input_day3.txt"
+  print $ M.size . M.filter (>= 2) $ fillSheet claims
