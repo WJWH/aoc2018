@@ -74,9 +74,28 @@ countSnozeMinutes = trd . foldl' foldfunc (0, zerotime, M.empty)
         foldfunc (currentGuard, snozeStart, snozeMap) (Event evtTime GuardFellAsleep) =  (currentGuard, evtTime, snozeMap)
         foldfunc (currentGuard, snozeStart, snozeMap) (Event evtTime GuardWokeUp) = (currentGuard, zerotime, M.insertWith (+) currentGuard (minutesAsleep snozeStart evtTime) snozeMap)
 
+-- now some functions to find the snoziest minute 
+updateMinuteMap :: M.Map Int Int -> LocalTime -> LocalTime -> M.Map Int Int
+updateMinuteMap minuteMap (LocalTime _ nap) (LocalTime _ wake) = foldl' foldfunc minuteMap [napMinute..(wakeMinute-1)]
+  where wakeMinute = fromIntegral $ todMin wake
+        napMinute = fromIntegral $  todMin nap
+        foldfunc minmap minute = M.insertWith (+) minute 1 minmap
+
+findSnoziestTime :: GuardId -> [Event] -> M.Map Int Int
+findSnoziestTime guardId = trd . foldl' foldfunc (0, zerotime, M.empty)
+  where foldfunc (currentGuard, snozeStart, snozeMap) (Event evtTime (GuardChange id)) = (id, zerotime, snozeMap)
+        foldfunc (currentGuard, snozeStart, snozeMap) (Event evtTime GuardFellAsleep) =  (currentGuard, evtTime, snozeMap)
+        foldfunc (currentGuard, snozeStart, snozeMap) (Event evtTime GuardWokeUp)
+          | currentGuard == guardId = (currentGuard, zerotime, updateMinuteMap snozeMap snozeStart evtTime)
+          | otherwise = (currentGuard, zerotime, snozeMap)
+
+-- used twice already
+keyWithMaximumValue :: Ord v => M.Map k v -> k
+keyWithMaximumValue m = fst . maximumBy (comparing snd) $ M.toList m
+
 main = do
   Right events <- parse eventsFileParser "input" <$> TIO.readFile "input_day4.txt"
   let snozeMap = countSnozeMinutes events
-  let maxSnozeTime = maximum . M.elems $ snozeMap
-  print $ (\(x,y) -> x*y ) . head . M.toList . M.filter (== maxSnozeTime) $ snozeMap
-
+  let snoziestGuard = keyWithMaximumValue snozeMap
+  -- so now we know the snoziest guard, but when is he at his most snozy?
+  print $ snoziestGuard * (keyWithMaximumValue $ findSnoziestTime snoziestGuard events)
