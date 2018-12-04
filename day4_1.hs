@@ -76,4 +76,7 @@ countSnozeMinutes = trd . foldl' foldfunc (0, zerotime, M.empty)
 
 main = do
   Right events <- parse eventsFileParser "input" <$> TIO.readFile "input_day4.txt"
-  print $ countSnozeMinutes events
+  let snozeMap = countSnozeMinutes events
+  let maxSnozeTime = maximum . M.elems $ snozeMap
+  print $ (\(x,y) -> x*y ) . head . M.toList . M.filter (== maxSnozeTime) $ snozeMap
+
