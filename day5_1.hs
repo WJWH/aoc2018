@@ -1,25 +1,15 @@
 import Data.Char
-import qualified Data.IntMap.Strict as M
-import Data.Maybe
 
 main = do
-  dataTree <- M.fromList . (zip [1..]) <$> readFile "input_day5.txt"
-  print . M.size $ reduce dataTree (Just 1) (Just 2)
+  input <- readFile "input_day5.txt"
+  print . length $ reduce "" input
 
--- Some utility functions to make it the subsequent code shorter
-compareKeys :: M.IntMap Char -> Int -> Int -> Bool
-compareKeys map l r = sameLetter && differentCase
-  where leftValue  = M.lookup l map
-        rightValue = M.lookup r map
-        sameLetter = (toUpper <$> leftValue) == (toUpper <$> rightValue)
-        differentCase = (isUpper <$> leftValue) /= (isUpper <$> rightValue)
-
-reduce :: M.IntMap Char -> Maybe Int -> Maybe Int -> M.IntMap Char
-reduce m left Nothing = m -- We're at the right side of the map 
-reduce m Nothing (Just right) = reduce m (Just right) (fst <$> M.lookupGT right m) --shift up one to the right because we're falling off the left side
-reduce m (Just left) (Just right)
-  | compareKeys m left right = reduce newMap nextSmallestKey nextBiggestKey
-  | otherwise = reduce m (Just right) (fst <$> M.lookupGT right m)
-    where nextBiggestKey  = fst <$> M.lookupGT right m
-          nextSmallestKey = fst <$> M.lookupLT left  m
-          newMap = M.delete right (M.delete left m) -- map with the deleteable elements 'reduced's
+reduce :: String -> String -> String
+reduce left "" = left -- We're at the right side of the map 
+reduce ""  (r:rights) = reduce "r" rights --shift up one to the right because we're falling off the left side
+reduce (l:lefts) (r:rights)
+  | reduceable = reduce lefts rights -- remove the elements and look again
+  | otherwise = reduce (r:l:lefts) rights -- look at the next pair
+    where reduceable = sameLetter && differentCase
+          sameLetter = (toUpper l) == (toUpper r)
+          differentCase = (isUpper l) /= (isUpper r)
