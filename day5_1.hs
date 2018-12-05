@@ -6,7 +6,7 @@ main = do
 
 reduce :: String -> String -> String
 reduce left "" = left -- We're at the right side of the map 
-reduce ""  (r:rights) = reduce "r" rights --shift up one to the right because we're falling off the left side
+reduce ""  (r:rights) = reduce (r : "") rights --shift up one to the right because we're falling off the left side
 reduce (l:lefts) (r:rights)
   | reduceable = reduce lefts rights -- remove the elements and look again
   | otherwise = reduce (r:l:lefts) rights -- look at the next pair
