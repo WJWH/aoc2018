@@ -52,7 +52,7 @@ resolveGraph deps depmap stepsAvailable stepsSoFar
 
 stepResolveGraph :: DependencyGraph -> M.Map Char Int -> AvailableSteps -> RunningTasks -> Int -> Int
 stepResolveGraph deps depmap stepsAvailable runningTasks secondsSoFar
-  | null runningTasks = secondsSoFar -- we're done here
+  | null runningTasks && null stepsAvailable = secondsSoFar -- we're done here
   | (length runningTasks) < 5 && (not $ H.null stepsAvailable) = stepResolveGraph deps depmap newStepsAvailable (newRunningTask : runningTasks) secondsSoFar
   | any (\(_,y) -> y == 0) runningTasks = stepResolveGraph deps newDepCount (foldr H.insert stepsAvailable newOptions) (filter (\z -> snd z /= 0) runningTasks) secondsSoFar
   | otherwise = stepResolveGraph deps depmap stepsAvailable (map (\(x,y) -> (x,y - 1)) runningTasks) (secondsSoFar + 1)
@@ -65,7 +65,7 @@ stepResolveGraph deps depmap stepsAvailable runningTasks secondsSoFar
 -- ?????
 
 taskDuration :: Char -> Int
-taskDuration c = (fromEnum c) - 64 -- actually `- 64 + 60`
+taskDuration c = (fromEnum c) - 4 -- actually `- 64 + 60`
 
 main = do
   Right dependencies <- parse dependencyFileParser "" <$> TIO.readFile "input_day7.txt"
